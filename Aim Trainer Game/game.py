@@ -17,19 +17,31 @@ TARGET_INCREMENT = 400                  # New target every 400 ms
 TARGET_EVENT = pygame.USEREVENT          # Custom pygame event
 TARGET_PADDING = 30
 
-BG_COLOR = (0, 50, 40)                   # Background color
-TOP_BAR_HEIGHT = 35
-LIVES = 3
-GAME_TIME = 60                           # ⏱️ FIXED GAME TIME (seconds)
+# 🎮 GAMING THEME COLORS
+BG_COLOR = (10, 10, 25)                  # Dark navy background
+NEON_CYAN = (0, 255, 255)
+NEON_PINK = (255, 20, 147)
+NEON_GREEN = (57, 255, 20)
+NEON_PURPLE = (138, 43, 226)
+NEON_ORANGE = (255, 140, 0)
+DARK_OVERLAY = (20, 20, 40)
 
-LABEL_FONT = pygame.font.SysFont("arial", 24)
+TOP_BAR_HEIGHT = 50
+LIVES = 3
+GAME_TIME = 20                           # ⏱️ FIXED GAME TIME (seconds)
+
+# 🎮 GAMING FONTS
+LABEL_FONT = pygame.font.SysFont("consolas", 26, bold=True)
+TITLE_FONT = pygame.font.SysFont("consolas", 48, bold=True)
+STAT_FONT = pygame.font.SysFont("consolas", 32, bold=True)
 
 # -------------------- TARGET CLASS --------------------
 class Target:
-    MAX_SIZE = 30
-    GROWTH_RATE = 0.2
-    COLOR = "red"
-    SECOND_COLOR = "blue"
+    MAX_SIZE = 35
+    GROWTH_RATE = 0.25
+    COLOR = (255, 20, 147)      # Neon Pink
+    SECOND_COLOR = (0, 255, 255) # Neon Cyan
+    GLOW_COLOR = (255, 100, 200)
 
     def __init__(self, x, y):
         self.x = x
@@ -48,11 +60,19 @@ class Target:
             self.size -= self.GROWTH_RATE
 
     def draw(self, win):
-        """Draw layered target circles"""
+        """Draw layered target circles with glow effect"""
+        # Outer glow
+        glow_surface = pygame.Surface((int(self.size * 3), int(self.size * 3)), pygame.SRCALPHA)
+        pygame.draw.circle(glow_surface, (*self.GLOW_COLOR, 30), 
+                          (int(self.size * 1.5), int(self.size * 1.5)), int(self.size * 1.5))
+        win.blit(glow_surface, (self.x - int(self.size * 1.5), self.y - int(self.size * 1.5)))
+        
+        # Target circles
         pygame.draw.circle(win, self.COLOR, (self.x, self.y), int(self.size))
         pygame.draw.circle(win, self.SECOND_COLOR, (self.x, self.y), int(self.size * 0.8))
         pygame.draw.circle(win, self.COLOR, (self.x, self.y), int(self.size * 0.6))
         pygame.draw.circle(win, self.SECOND_COLOR, (self.x, self.y), int(self.size * 0.4))
+        pygame.draw.circle(win, (255, 255, 255), (self.x, self.y), int(self.size * 0.15))
 
     def collide(self, x, y):
         """Check if mouse click hits target"""
@@ -77,20 +97,28 @@ def format_time(secs):
 
 
 def draw_top_bar(win, elapsed_time, hits, misses):
-    """Top stats bar"""
-    pygame.draw.rect(win, "grey", (0, 0, WIDTH, TOP_BAR_HEIGHT))
+    """Top stats bar with gaming theme"""
+    # Dark overlay bar
+    bar_surface = pygame.Surface((WIDTH, TOP_BAR_HEIGHT), pygame.SRCALPHA)
+    pygame.draw.rect(bar_surface, (*DARK_OVERLAY, 200), (0, 0, WIDTH, TOP_BAR_HEIGHT))
+    win.blit(bar_surface, (0, 0))
+    
+    # Neon bottom border
+    pygame.draw.line(win, NEON_CYAN, (0, TOP_BAR_HEIGHT), (WIDTH, TOP_BAR_HEIGHT), 3)
 
     speed = hits / elapsed_time if elapsed_time > 0 else 0
+    remaining_time = max(0, GAME_TIME - elapsed_time)
 
-    time_label = LABEL_FONT.render(f"Time: {format_time(elapsed_time)}", True, "black")
-    speed_label = LABEL_FONT.render(f"Speed: {round(speed,1)} t/s", True, "black")
-    hits_label = LABEL_FONT.render(f"Hits: {hits}", True, "black")
-    lives_label = LABEL_FONT.render(f"Lives: {LIVES - misses}", True, "black")
+    # Stats with neon colors
+    time_label = LABEL_FONT.render(f"⏱ {format_time(remaining_time)}", True, NEON_CYAN)
+    speed_label = LABEL_FONT.render(f"⚡ {round(speed,1)} t/s", True, NEON_GREEN)
+    hits_label = LABEL_FONT.render(f"🎯 {hits}", True, NEON_PINK)
+    lives_label = LABEL_FONT.render(f"❤ {LIVES - misses}", True, NEON_ORANGE)
 
-    win.blit(time_label, (10, 8))
-    win.blit(speed_label, (200, 8))
-    win.blit(hits_label, (430, 8))
-    win.blit(lives_label, (620, 8))
+    win.blit(time_label, (15, 12))
+    win.blit(speed_label, (220, 12))
+    win.blit(hits_label, (430, 12))
+    win.blit(lives_label, (620, 12))
 
 
 def get_middle(surface):
@@ -100,22 +128,39 @@ def get_middle(surface):
 
 # -------------------- END SCREEN --------------------
 def end_screen(win, elapsed_time, hits, clicks):
-    """Show final results"""
+    """Show final results with gaming theme"""
     win.fill(BG_COLOR)
+
+    # Title with glow
+    title = TITLE_FONT.render("GAME OVER", True, NEON_PINK)
+    title_shadow = TITLE_FONT.render("GAME OVER", True, (100, 10, 50))
+    win.blit(title_shadow, (get_middle(title) + 3, 53))
+    win.blit(title, (get_middle(title), 50))
 
     accuracy = (hits / clicks * 100) if clicks > 0 else 0
     speed = hits / elapsed_time if elapsed_time > 0 else 0
 
-    labels = [
-        f"Time Played: {format_time(elapsed_time)}",
-        f"Hits: {hits}",
-        f"Speed: {round(speed,1)} t/s",
-        f"Accuracy: {round(accuracy,1)}%"
+    # Stats panel
+    panel_rect = pygame.Rect(WIDTH//2 - 250, 160, 500, 300)
+    panel_surface = pygame.Surface((500, 300), pygame.SRCALPHA)
+    pygame.draw.rect(panel_surface, (*DARK_OVERLAY, 180), (0, 0, 500, 300), border_radius=15)
+    pygame.draw.rect(panel_surface, NEON_CYAN, (0, 0, 500, 300), 3, border_radius=15)
+    win.blit(panel_surface, panel_rect)
+
+    stats = [
+        (f"⏱ Time: {format_time(elapsed_time)}", NEON_CYAN),
+        (f"🎯 Hits: {hits}", NEON_PINK),
+        (f"⚡ Speed: {round(speed,1)} t/s", NEON_GREEN),
+        (f"🎮 Accuracy: {round(accuracy,1)}%", NEON_ORANGE)
     ]
 
-    for i, text in enumerate(labels):
-        label = LABEL_FONT.render(text, True, "white")
-        win.blit(label, (get_middle(label), 150 + i * 60))
+    for i, (text, color) in enumerate(stats):
+        label = STAT_FONT.render(text, True, color)
+        win.blit(label, (get_middle(label), 200 + i * 60))
+
+    # Press any key message
+    exit_msg = LABEL_FONT.render("Press any key to exit...", True, (150, 150, 150))
+    win.blit(exit_msg, (get_middle(exit_msg), 500))
 
     pygame.display.update()
 
@@ -146,10 +191,11 @@ def main():
         mouse_pos = pygame.mouse.get_pos()
 
         elapsed_time = time.time() - start_time
+        remaining_time = GAME_TIME - elapsed_time
 
-        # ⏱️ END GAME WHEN TIME IS OVER
-        if elapsed_time >= GAME_TIME:
-            end_screen(WIN, elapsed_time, hits, clicks)
+        # ⏱️ END GAME WHEN TIME REACHES EXACTLY 0
+        if remaining_time <= 0:
+            end_screen(WIN, GAME_TIME, hits, clicks)
 
         # Handle events
         for event in pygame.event.get():
